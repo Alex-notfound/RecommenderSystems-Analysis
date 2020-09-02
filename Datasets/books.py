@@ -90,8 +90,10 @@ def download_movielens(size, dest_path):
     maybe_download(url, file, work_directory=dirs)
 
 def extract_movielens(size, rating_path, item_path, zip_path):
-    filename = "dataset_out_REDUCED.csv"
-    with open(filename, "rb") as zf, open(rating_path, "wb") as f:
+    filename = "dataset_OrderByItem10k.csv"
+    filename2 = "dataset_OrderByUser10k.csv"
+    filename3 = "dataset_out.csv"
+    with open(filename3, "rb") as zf, open(rating_path, "wb") as f:
         shutil.copyfileobj(zf, f)
     with ZipFile(zip_path, "r") as z:
         with z.open("BX-Books.csv") as zf, open(item_path, "wb") as f:
@@ -154,5 +156,47 @@ def load_spark_df(
         # Cache and force trigger action since data-file might be removed.
         df.cache()
         df.count()
+
+    return df
+
+def load_pandas_df(
+    size="100k",
+    header=None,
+    local_cache_path=None,
+    title_col=None,
+    genres_col=None,
+    year_col=None,
+):
+   
+    size = size.lower()
+    
+    if header is None:
+        header = DEFAULT_HEADER
+    elif len(header) < 2:
+        raise ValueError(ERROR_HEADER)
+    elif len(header) > 3:
+        warnings.warn(WARNING_MOVIE_LENS_HEADER)
+        header = header[:3]
+
+    book_col = header[1]
+
+    with download_path(local_cache_path) as path:
+        filepath = os.path.join(path, "BX-CSV-Dump.zip".format(size))
+        datapath, item_datapath = _maybe_download_and_extract(size, filepath)
+
+        # Load rating data
+        print([*range(len(header))])
+        df = pd.read_csv(
+            datapath,
+            sep=";",
+            engine="python",
+            names=header,
+            usecols=[*range(len(header))],
+            header=0,
+        )
+
+        # Convert 'rating' type to float
+        if len(header) > 2:
+            df[header[2]] = df[header[2]].astype(float)
 
     return df

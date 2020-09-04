@@ -3,7 +3,7 @@ from itertools import islice
 
 def sort_by_user(filename, outfileOrderByUser):
     data = csv.reader(open(filename, 'r'),delimiter='\t')
-    sortedlist = sorted(data, key=operator.itemgetter(0))    # 0 specifies according to first column we want to sort
+    sortedlist = sorted(data, key=lambda row: int(row[0]))    # 0 specifies according to first column we want to sort
     with open(outfileOrderByUser, "w", newline='') as f:
         fileWriter = csv.writer(f, delimiter='\t')
         for row in sortedlist:
@@ -11,7 +11,7 @@ def sort_by_user(filename, outfileOrderByUser):
 
 def sort_by_item(filename, outfileOrderByItem):
     data = csv.reader(open(filename, 'r'),delimiter='\t')
-    sortedlist = sorted(data, key=operator.itemgetter(1))
+    sortedlist = sorted(data, key=lambda row: int(row[1]))
     with open(outfileOrderByItem, "w", newline='') as f:
         fileWriter = csv.writer(f, delimiter='\t')
         for row in sortedlist:
@@ -28,32 +28,23 @@ def sort_random(filename, outfileShuffle):
     fo.writelines(r)
     fo.close()
    
-def castToDat():
-    tmpFile = "books_total.dat"
-    filename = "books_total.csv"
-
+def castCsvToDat(filename, wordkey):
+    tmpFile = wordkey + ".dat"
     with open(filename, "r") as zf, open(tmpFile, "w", newline='') as f_out:
         reader = csv.reader(zf, delimiter=';')
         writer = csv.writer(f_out, delimiter='\t')
-        writer.writerow(next(reader))
-        n_items = 0
-        n_users = 0
-        items_dict = dict()
-        users_dict = dict()
         for row in reader:   
-            if row[1] not in items_dict:  
-                n_items += 1
-                items_dict[row[1]] = [n_items]            
-            row[1] = items_dict[row[1]][0]
-            if row[0] not in users_dict:
-                n_users += 1
-                users_dict[row[0]] = [n_users]
             writer.writerow(row)
-        print("Total - n_items:", n_items)
-        print("Total - n_users:", n_users)
         
-def cutDataset(filename, outfile, n_rows):
-            
+def castDatToCsv(filename, wordkey):
+    tmpFile = wordkey + ".csv"
+    with open(filename, "r") as zf, open(tmpFile, "w", newline='') as f_out:
+        reader = csv.reader(zf, delimiter='\t')
+        writer = csv.writer(f_out, delimiter=';')
+        for row in reader:   
+            writer.writerow(row)     
+        
+def cutDataset(filename, outfile, n_rows):    
     with open(filename, "r") as zf, open(outfile, "w", newline='') as f_out:
         reader = csv.reader(zf, delimiter='\t')
         writer = csv.writer(f_out, delimiter='\t')
@@ -75,35 +66,46 @@ def cutDataset(filename, outfile, n_rows):
                 users_dict[row[0]] += 1
             writer.writerow(row)
         
-        print(outfile)
-        print("Size:", n_rows," - n_items:", n_items)
-        min_items = items_dict[min(items_dict, key=items_dict.get)]
-        max_items = items_dict[max(items_dict, key=items_dict.get)]
-        filtered_vals = [v for _, v in items_dict.items() if v != 0]
-        avg_items = sum(filtered_vals) / len(filtered_vals)
-        print("Cada ítem fue valorado mínimo {0} veces y máximo {1}. Una media de {2} veces puntuado.".format(min_items,max_items,avg_items))
+        #getInfo(outfile,n_rows, n_items, n_users, items_dict, users_dict)
+      
+def getInfo(filename, n_rows, n_items, n_users, items_dict, users_dict):
+    min_items = items_dict[min(items_dict, key=items_dict.get)]
+    max_items = items_dict[max(items_dict, key=items_dict.get)]
+    filtered_vals = [v for _, v in items_dict.items() if v != 0]
+    avg_items = sum(filtered_vals) / len(filtered_vals)
             
-        print("Size:", n_rows," - n_users:", n_users)
-        min_users = users_dict[min(users_dict, key=users_dict.get)]
-        max_users = users_dict[max(users_dict, key=users_dict.get)]
-        filtered_vals = [v for _, v in users_dict.items() if v != 0]
-        avg_users = sum(filtered_vals) / len(filtered_vals)
-        print("Cada usuario valoró mínimo {0} veces y máximo {1}. Una media de {2} veces ha puntuado.".format(min_users,max_users,avg_users))
+    min_users = users_dict[min(users_dict, key=users_dict.get)]
+    max_users = users_dict[max(users_dict, key=users_dict.get)]
+    filtered_vals = [v for _, v in users_dict.items() if v != 0]
+    avg_users = sum(filtered_vals) / len(filtered_vals)
+    
+    print(filename, " - Tuplas:", n_rows)
+    print("Nº usuarios:", n_users)
+    print("Nº items:", n_items)
+    print("Máx. de veces que un usuario ha valorado un ítem:", max_users)
+    print("Mín. de veces que un usuario ha valorado un ítem:", min_users)
+    print("Avg de veces que un usuario ha valorado un ítem:", avg_users)
+    print("Máx. de veces que un ítem ha sido valorado:", max_items)
+    print("Mín. de veces que un ítem ha sido valorado:", min_items)
+    print("Avg de veces que un ítem ha sido valorado:", avg_items)
 
-        print("Ratio = AVG de veces que items fueron valorados / (Total items - AVG de veces que items fueron valorados)")
-        print("{0} / {1} = {2}".format(avg_items, n_items - avg_items, avg_items/(n_items-avg_items)))
-        print("################################################")
+    print("Ratio = AVG de veces que items fueron valorados / (Total items - AVG de veces que items fueron valorados)")
+    print("{0} / {1} = {2}".format(avg_items, n_items - avg_items, avg_items/(n_items-avg_items)))
+    print("################################################\n\n")
 
-word_key = 'books'
-filename = word_key + '_total.dat'
+word_key = 'book_original'
+filenameDat = word_key + '.dat'
+filenameCsv = word_key + '.csv'
 outfileOrderByUser = word_key + '_OrderByUser.dat'
 outfileOrderByItem = word_key + '_OrderByItem.dat'
 outfileShuffle = word_key + '_shuffle.dat'
 
+#castDatToCsv(filename, word_key)
+
 #castToDat()
-sort_by_user(filename, outfileOrderByUser)
-sort_by_item(filename, outfileOrderByItem)
-sort_random(filename, outfileShuffle)
+sort_by_user(filenameDat, outfileOrderByUser)
+sort_by_item(filenameDat, outfileOrderByItem)
+sort_random(filenameDat, outfileShuffle)
 
 cutDataset(outfileOrderByUser, word_key + '_OrderByUser_100k.dat', 100000)
 cutDataset(outfileOrderByItem, word_key + '_OrderByItem_100k.dat', 100000)
